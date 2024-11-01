@@ -35,9 +35,9 @@ except BaseException:
 
 
 def getModel(arch, **kargs):
-    # model = MobileNet(num_classes=10)
+    model = MobileNet(num_classes=10)
     # model = MobileNet_64(num_classes=200)
-    model = MobileNetV2_224(num_classes=1000)
+    #model = MobileNetV2_224(num_classes=1000)
     model = torch.nn.DataParallel(model).cuda()
     print_model_parm_nums(model)
 
