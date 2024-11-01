@@ -1,4 +1,5 @@
 # build-in libraries
+import pdb
 import os
 import argparse
 import numpy as np
@@ -37,11 +38,35 @@ parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--max_epochs', type=int, default=300, help='total epochs to run')
 parser.add_argument('--alpha', type=float, default=0.8, help='probability bounding factor')
 parser.add_argument('--lr_type', default='cosine', type=str, metavar='T', help='learning rate strategy (default: cosine)', choices=['cosine', 'multistep'])
+parser.add_argument('--lat_exp', type=float, default=1.)
+parser.add_argument('--pos_w', type=float, default=10.)
+parser.add_argument('--neg_w', type=float, default=-10.)
 args = parser.parse_args()
 
 if not os.path.exists(args.cv_dir):
     os.system('mkdir ' + args.cv_dir)
 utils.save_args(__file__, args)
+
+
+def get_reward(preds, targets, policy, elasped, baseline):
+
+    highest_point = - (lb - ub)*(ub - lb)/4
+
+    sparse_reward = -1 * (elasped.cuda().data - ub) * (elasped.cuda().data - lb) / highest_point
+    sparse_reward = torch.clamp(sparse_reward, min=0.)
+
+    _, pred_idx = preds.max(1)
+    match = (pred_idx == targets).data
+
+    reward = sparse_reward ** args.lat_exp
+
+    reward[match]   *= args.pos_w
+    reward[match==0] = args.neg_w
+
+    reward = reward.unsqueeze(1)
+    reward = reward.unsqueeze(2)
+
+    return reward, match.float(), elasped
 
 
 def train(epoch):
@@ -52,7 +77,7 @@ def train(epoch):
     for batch_idx, (inputs, targets) in tqdm.tqdm(enumerate(trainloader), total=len(trainloader)):
 
         cur_lr = utils.adjust_learning_rate_cos(optimizer, epoch, args.max_epochs, args.lr, batch=batch_idx, nBatch=len(trainloader), method=args.lr_type)
-        inputs, targets = Variable(inputs), Variable(targets).cuda(async=True)
+        inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
 
         #---------------------------------------------------------------------#
         probs, value = agent(inputs)
@@ -66,7 +91,7 @@ def train(epoch):
             v_inputs = Variable(inputs.data)
 
         preds_map, lat_map  = instanet.forward(v_inputs, policy_map)
-        reward_map, match_map, avg_elasped_map = utils.get_reward(preds_map, targets, policy_map.data, lat_map, instanet.module.baseline)
+        reward_map, match_map, avg_elasped_map = get_reward(preds_map, targets, policy_map.data, lat_map, instanet.module.baseline)
 
         loss = F.cross_entropy(preds_map, targets)
         #---------------------------------------------------------------------#
@@ -95,7 +120,7 @@ def test(epoch):
     for batch_idx, (inputs, targets) in tqdm.tqdm(enumerate(testloader), total=len(testloader)):
 
         with torch.no_grad():
-            inputs, targets = Variable(inputs), Variable(targets).cuda(async=True)
+            inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
 
         probs, _ = agent(inputs)
 
@@ -107,7 +132,7 @@ def test(epoch):
 
         preds, lat = instanet.forward(inputs, policy)
 
-        reward, match, avg_elasped = utils.get_reward(preds, targets, policy.data, lat, instanet.module.baseline)
+        reward, match, avg_elasped = get_reward(preds, targets, policy.data, lat, instanet.module.baseline)
 
         matches.append(match)
         rewards.append(reward)

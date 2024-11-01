@@ -24,8 +24,7 @@ def performance_stats(policies, rewards, matches):
     reward = rewards.mean()
     sparsity = policies.sum(2).sum(1).sum(0)/policies.size(0)
 
-    policy_set = [np.reshape(p.cpu().numpy().astype(
-        np.int).astype(np.str), (-1)) for p in policies]
+    policy_set = [np.reshape(p.cpu().numpy().astype(int).astype(str), (-1)) for p in policies]
     policy_set = set([''.join(p) for p in policy_set])
 
     return accuracy, reward, sparsity, policy_set

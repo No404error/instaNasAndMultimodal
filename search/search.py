@@ -1,3 +1,4 @@
+import pdb
 import argparse
 import os
 import time
@@ -10,7 +11,7 @@ import torch.utils.data as torchdata
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import tqdm
+from tqdm import tqdm
 import utils
 import torch.optim as optim
 from torch.distributions import Bernoulli
@@ -25,10 +26,10 @@ warnings.filterwarnings("ignore")
 """
 Set seed
 """
-np.random.seed = 8888
-torch.manual_seed(8888)
-torch.cuda.manual_seed(8888)
-torch.cuda.manual_seed_all(8888)
+# np.random.seed = 8888
+# torch.manual_seed(8888)
+# torch.cuda.manual_seed(8888)
+# torch.cuda.manual_seed_all(8888)
 
 parser = argparse.ArgumentParser(description='InstaNas Search Stage')
 parser.add_argument('--static_ep', type=float, default=30, help='static reward target epoch')
@@ -90,8 +91,8 @@ def train(epoch):
     matches, rewards, policies, dur, advantages = [], [], [], [], []
     matches_, rewards_, policies_, dur_ = [], [], [], []
 
-    for idx, (inputs, targets) in tqdm.tqdm(enumerate(trainloader), total=len(trainloader)):
-        inputs, targets = Variable(inputs).cuda(async=True), Variable(targets).cuda(async=True)
+    for idx, (inputs, targets) in tqdm(enumerate(trainloader), total=len(trainloader)):
+        inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
 
         probs, _ = agent(inputs)
         #---------------------------------------------------------------------#
@@ -192,8 +193,8 @@ def train_net(epoch):
     instanet.train()
 
     matches_, rewards_, policies_, dur_ = [], [], [], []
-    for idx, (inputs, targets) in tqdm.tqdm(enumerate(trainloader_ft), total=len(trainloader_ft)):
-        inputs, targets = Variable(inputs).cuda(async=True), Variable(targets).cuda(async=True)
+    for idx, (inputs, targets) in tqdm(enumerate(trainloader_ft), total=len(trainloader_ft)):
+        inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
 
         probs, _ = agent(inputs)
         #---------------------------------------------------------------------#
@@ -246,10 +247,10 @@ def test(epoch, repro_oneshot=False):
     instanet.eval()
 
     matches, rewards, policies, dur = [], [], [], []
-    for _, (inputs, targets) in tqdm.tqdm(enumerate(testloader), total=len(testloader)):
+    for _, (inputs, targets) in tqdm(enumerate(testloader), total=len(testloader)):
 
         with torch.no_grad():
-            inputs, targets = Variable(inputs).cuda(async=True), Variable(targets).cuda(async=True)
+            inputs, targets = Variable(inputs).cuda(), Variable(targets).cuda()
 
         probs, _ = agent(inputs)
 
@@ -306,6 +307,7 @@ def test(epoch, repro_oneshot=False):
 
 
 #--------------------------------------------------------------------------------------------------------#
+#pdb.set_trace()
 trainset, testset = utils.get_dataset(args.model, args.data_dir)
 trainloader = torchdata.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 trainloader_ft = torchdata.DataLoader(trainset, batch_size=args.ft_batch_size, shuffle=True, num_workers=16)

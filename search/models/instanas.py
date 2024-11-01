@@ -65,7 +65,9 @@ class InstaNas(nn.Module):
                         else:
                             # Feature map reshaped, use default layer
                             x[is_no_action] = feature_map_raw[4][is_no_action]
-                            lat_delta[is_no_action] = self.layers[t][4].lat.cuda()
+                            floatV = self.layers[t][4].lat.cuda().float()
+                            lat_delta[is_no_action] = floatV
+                            #lat_delta[is_no_action] = self.layers[t][4].lat.cuda()
                             #flops_delta[is_no_action] = self.layers[t][4].flops.cuda().float()
                     lat += lat_delta
                     #flops += flops_delta
@@ -76,7 +78,7 @@ class InstaNas(nn.Module):
                 #     logits_aux = x
 
         x = F.relu(self.bn2(self.conv2(x)))
-        x = F.avg_pool2d(x, 7)
+        x = F.avg_pool2d(x, 4)
         x = x.view(x.size(0), -1)
         x = self.linear(x)
 
