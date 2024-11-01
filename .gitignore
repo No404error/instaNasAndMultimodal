@@ -10,7 +10,9 @@ data/
 *.log
 
 cachedir/
-
+output/
+finetune_output/
+pretrain/save/
 
 *.DS_Store
 .ipynb_checkpoints
